@@ -1,0 +1,76 @@
+<html>
+
+    <head>
+        <link rel=stylesheet href="helpme.css">
+        <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+        <title>Example of Help Me system</title>
+        <style>
+            button {
+                border-radius: 10px;
+                background: rgb(0, 26, 255);
+                color:#fff;
+                border:none;
+                margin:10px;
+                padding:20px;
+            }
+            .my_class {
+                background: rgb(255, 38, 0);
+                border-radius: 1000px;
+                width:100px;
+                height:100px;
+                color:#fff;
+                text-align: center;
+                position: absolute;
+                left:50%;
+                top:50%;
+            }
+            .my_class:hover {
+                cursor:pointer;
+            }
+        </style>
+    </head>
+    
+    <body>
+
+        <button id='btn1' onclick="click_start()">Start the tutorial</button>
+        <br>
+        <button>Create</button><button id='btn2' onclick="click_hello()">Hello</button>
+        <div id='circle' class='my_class' onclick="click_circle()"></div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="helpme.js"></script>
+        <script>
+        
+            var hm = new HelpMe('helpme_example_app')
+
+            async function main() {
+                await hm.register_helpme($('#btn1'), 'start tuto', 'click the button to start the tuto', 'top right')
+            }
+
+            main()
+
+            // --------------------------
+
+            function click_start() {
+                console.log('coucou')
+                hm.register_view_helpme('start tuto')
+                hm.register_helpme($('#btn2'), 'say hello', 'click here to say hello', 'bottom left')
+            }
+
+            function click_hello() {
+                alert('hello')
+                hm.register_view_helpme('say hello')
+                hm.register_helpme($('#circle'), 'circle', 'click this circle to reload', 'top right')
+            }
+
+            async function click_circle() {
+                await hm.register_view_helpme('circle')
+                await hm.reset_all()
+                setTimeout(function(){
+                    location.reload()
+                },1000)
+            }
+
+        </script>
+    </body>
+</html>
