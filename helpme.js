@@ -10,7 +10,7 @@ class HelpMe {
         this.registered_jq = {}
         this.help_queue = []
 
-        this.next_queue_index = 0
+        this.next_queued_index = this.get_last_queued_index()
     }
 
     // --------------------------------------------------
@@ -83,6 +83,7 @@ class HelpMe {
     // --------------------------------------------------
 
     _launch_event(help_event) {
+        console.log(help_event.jq)
         let jq = this.registered_jq[help_event.jq]
         let copy = this.GX_create_helping_copy(jq)
         let gx = this.GX_create_help_event(help_event)
@@ -91,9 +92,9 @@ class HelpMe {
         $('body').append(gx)
 
         let tthis = this
-        help_event.interval = setInterval(function(){
+        function update_helpme(){
 
-            if(jq.css('display') == '') {
+            if(jq.css('display') == '' || jq.css('display') == 'none') {
                 tthis._end_event(help_event)
                 return
             }
@@ -118,12 +119,14 @@ class HelpMe {
             let top = jq_pos.top
             let left = jq_pos.right
 
-            if(gx_pos.right > win.width) {
-                left = jq_pos.left - gx_pos.width
+            if(left+200 > win.width) {
+                left = jq_pos.left - 400
             }
 
             gx.css({top:top,left:left})
-        })
+        }
+        help_event.interval = setInterval(update_helpme,300)
+        update_helpme()
     }
 
     _end_event(help_event) {
@@ -169,24 +172,34 @@ class HelpMe {
 
     // --------------------------------------------------
 
-    next_queued_event() {
-        if(this.next_queue_index >= this.help_queue.length)
-            return null
-        if(this.help_events[this.help_queue[this.next_queue_index]] == null)
-            return this.help_queue[this.next_queue_index]
-        let next_is_available = this.help_events[this.help_queue[this.next_queue_index]].available
-        while(!next_is_available) {
-            this.next_queue_index += 1
-            if(this.help_events[this.help_queue[this.next_queue_index]] == null)
-                break
-            next_is_available = this.help_events[this.help_queue[this.next_queue_index]].available
+    get_queued_index_name() {
+        return this.app_name+'queue_index'
+    }
+
+    get_last_queued_index() {
+        let next_index = localStorage.getItem(this.get_queued_index_name())
+        if(next_index == null) {
+            this.set_last_queued_index(0)
+            return this.get_last_queued_index()
         }
-        return this.help_queue[this.next_queue_index]
+        return parseInt(next_index)
+    }
+
+    set_last_queued_index(queued_index) {
+        localStorage.setItem(this.get_queued_index_name(), queued_index)
+    }
+
+    // --------------------------------------------------x
+
+    next_queued_event() {
+        if(this.next_queued_index >= this.help_queue.length)
+            return null
+        return this.help_queue[this.next_queued_index]
     }
 
     past_queued_event() {
-        if(this.next_queue_index > 0)
-            return this.help_queue[this.next_queue_index-1]
+        if(this.next_queued_index > 0)
+            return this.help_queue[this.next_queued_index-1]
         return null
     }
 
@@ -210,8 +223,9 @@ class HelpMe {
         let past_event = this.past_queued_event()
         if(past_event != null)
             this.end_event(past_event)
-        this.next_queue_index += 1
         this.trigger_event(next_event)
+        this.set_last_queued_index(this.next_queued_index)
+        this.next_queued_index += 1
     }
 
     trigger_queue(event_name=null) {
