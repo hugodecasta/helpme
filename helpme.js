@@ -5,69 +5,25 @@ class HelpMe {
 
     constructor(app_name) {
         this.app_name = app_name
-        this.stored_GX = {}
+
+        this.help_events = {}
+        this.registered_jq = {}
+        this.help_queue = []
+
+        this.next_queue_index = 0
     }
 
     // --------------------------------------------------
-
-    get_help_log_name() {
-        return this.app_name+'help_log'
-    }
-
-    async get_help_log() {
-        let help_log = localStorage.getItem(this.get_help_log_name())
-        if(help_log == null) {
-            await this.set_help_log({'@last_item':null})
-            return await this.get_help_log()
-        }
-        help_log = JSON.parse(help_log)
-        return help_log
-    }
-
-    async set_help_log(help_log) {
-        help_log = JSON.stringify(help_log)
-        localStorage.setItem(this.get_help_log_name(),help_log)
-    }
-
     // --------------------------------------------------
 
-    async get_help_item(help_item_name) {
-        let help_log = await this.get_help_log()
-        return help_log[help_item_name]
-    }
-
-    async set_help_item(help_item) {
-        let help_log = await this.get_help_log()
-        help_log[help_item.name] = help_item
-        await this.set_help_log(help_log)
-    }
-
-    async help_item_exists(help_item_name) {
-        let help_log = await this.get_help_log()
-        return help_log.hasOwnProperty(help_item_name)
-    }
-
-    // --------------------------------------------------
-
-    create_help_item(name, description) {
-        let help_item = {
-            name:name,
-            description:description,
-            viewed:false
-        }
-        return help_item
-    }
-
-    // --------------------------------------------------
-
-    GX_create_help_item(name,description) {
-        let help_item_gx = $('<div>').addClass('helpme')
-        let name_gx = $('<div>').addClass('name')
-        .html(name)
+    GX_create_help_event(help_event) {
+        let help_event_gx = $('<div>').addClass('helpme')
+        let title_gx = $('<div>').addClass('title')
+        .html(help_event.title)
         let desc_gx = $('<div>').addClass('description')
-        .html(description)
-        help_item_gx.append(name_gx).append(desc_gx)
-        return help_item_gx
+        .html(help_event.description)
+        help_event_gx.append(title_gx).append(desc_gx)
+        return help_event_gx
     }
 
     GX_create_helping_copy(JQ) {
@@ -78,77 +34,199 @@ class HelpMe {
 
     // --------------------------------------------------
 
-    async register_last() {
-        let last_item = await this.get_last_help_item()
+    get_help_log_name() {
+        return this.app_name+'help_log'
+    }
+
+    get_help_log() {
+        let help_log = localStorage.getItem(this.get_help_log_name())
+        if(help_log == null) {
+            this.set_help_log({})
+            return this.get_help_log()
+        }
+        help_log = JSON.parse(help_log)
+        return help_log
+    }
+
+    set_help_log(help_log) {
+        help_log = JSON.stringify(help_log)
+        localStorage.setItem(this.get_help_log_name(),help_log)
     }
 
     // --------------------------------------------------
 
-    async register_helpme(JQ, name, description, position) {
-        if(!await this.help_item_exists(name)) {
-            let help_item = this.create_help_item(name, description)
-            await this.set_help_item(help_item)
-        }
-        let help_item = await this.get_help_item(name)
-        console.log(help_item)
-        if(help_item.viewed || this.stored_GX.hasOwnProperty(name))
-            return
-        let gx = this.GX_create_help_item(name, description)
-        let copy = this.GX_create_helping_copy(JQ)
-        this.stored_GX[name] = {
-            gx:gx,
-            int:null
-        }
-        $('body').append(gx)
-        $('body').append(copy)
-        setTimeout(function(){
-            copy.remove()
-        },2000)
-        await this.set_last_help_item(help_item)
-        function update_pose() {
-            let top = JQ.offset().top
-            let left = JQ.offset().left
-            let bottom = top + JQ.outerHeight()
-            let right = left + JQ.outerWidth()
-            let pos = {
-                'top':top,
-                'left':left,
-                'bottom':bottom,
-                'right':right,
-            }
-            copy.css({top:top,left:left})
-            let poses = position.split(' ')
-            let mtop = pos[poses[0]]
-            let mleft = pos[poses[1]]
-            gx.css('top',mtop).css('left',mleft)
-        }
-        this.stored_GX[name].int = setInterval(update_pose)
-        update_pose()
+    load_help_event(name) {
+        let help_log = this.get_help_log()
+        return help_log[name]
     }
 
-    async register_view_helpme(name) {
-        if(!this.stored_GX.hasOwnProperty(name))
-            return
-        let gx = this.stored_GX[name].gx
-        let int = this.stored_GX[name].int
-        clearInterval(int)
-        gx.addClass('disappear_helpme')
-        setTimeout(function(){
-            gx.remove()
-        },2000)
-        delete this.stored_GX[name]
-        let help_item = await this.get_help_item(name)
-        help_item.viewed = true
-        await this.set_help_item(help_item)
+    save_help_event(name,help_event) {
+        let help_log = this.get_help_log()
+        help_log[name] = help_event
+        this.set_help_log(help_log)
+    }
+
+    help_event_exists(name) {
+        let help_log = this.get_help_log()
+        return help_log.hasOwnProperty(name)
     }
 
     // --------------------------------------------------
 
-    async reset_all() {
-        let help_log = await this.get_help_log()
+    reset_all() {
+        let help_log = this.get_help_log()
         for(let name in help_log)
-            help_log[name].viewed = false
-        await this.set_help_log(help_log)
+            help_log[name].available = true
+        this.set_help_log(help_log)
+    }
+
+    // --------------------------------------------------
+
+    _launch_event(help_event) {
+        let jq = this.registered_jq[help_event.jq]
+        let copy = this.GX_create_helping_copy(jq)
+        let gx = this.GX_create_help_event(help_event)
+
+        help_event.gx = gx
+        $('body').append(gx)
+
+        let tthis = this
+        help_event.interval = setInterval(function(){
+
+            if(jq.css('display') == '') {
+                tthis._end_event(help_event)
+                return
+            }
+
+            let jq_pos = {
+                'top':jq.offset().top,
+                'left':jq.offset().left,
+                'bottom':jq.offset().top+jq.outerHeight(),
+                'right':jq.offset().left+jq.outerWidth(),
+            }
+            let gx_pos = {
+                'top':gx.offset().top,
+                'left':gx.offset().left,
+                'bottom':gx.offset().top+gx.outerHeight(),
+                'right':gx.offset().left+gx.outerWidth(),
+            }
+            let win = {
+                width:$(window).innerWidth(),
+                height:$(window).outerHeight(),
+            }
+
+            let top = jq_pos.top
+            let left = jq_pos.right
+
+            if(gx_pos.right > win.width) {
+                left = jq_pos.left - gx_pos.width
+            }
+
+            gx.css({top:top,left:left})
+        })
+    }
+
+    _end_event(help_event) {
+        help_event.available = false
+        this.save_help_event(help_event.name,help_event)
+        if(!help_event.hasOwnProperty('gx'))
+            return
+        clearInterval(help_event.interval)
+        help_event.gx.addClass('disappear_helpme')
+        setTimeout(function(){
+            help_event.gx.remove()
+        },2000)
+
+    }
+
+    // --------------------------------------------------
+
+    set_help_event(name, help_event) {
+        if(help_event == null)
+            return
+            help_event.name = name
+        help_event.available = true
+        if(this.help_event_exists(name)) {
+            let existing_event = this.load_help_event(name)
+            help_event.available = existing_event.available
+        }
+        this.save_help_event(name, help_event)
+        this.help_events[name] = help_event
+    }
+
+    add_help_event_to_queue(name) {
+        this.help_queue.push(name)
+    }
+
+    queue_help_event(name, help_event) {
+        this.set_help_event(name, help_event) 
+        this.add_help_event_to_queue(name)
+    }
+
+    register_jq(id, jq) {
+        this.registered_jq[id] = jq
+    }
+
+    // --------------------------------------------------
+
+    next_queued_event() {
+        if(this.next_queue_index >= this.help_queue.length)
+            return null
+        if(this.help_events[this.help_queue[this.next_queue_index]] == null)
+            return this.help_queue[this.next_queue_index]
+        let next_is_available = this.help_events[this.help_queue[this.next_queue_index]].available
+        while(!next_is_available) {
+            this.next_queue_index += 1
+            if(this.help_events[this.help_queue[this.next_queue_index]] == null)
+                break
+            next_is_available = this.help_events[this.help_queue[this.next_queue_index]].available
+        }
+        return this.help_queue[this.next_queue_index]
+    }
+
+    past_queued_event() {
+        if(this.next_queue_index > 0)
+            return this.help_queue[this.next_queue_index-1]
+        return null
+    }
+
+    // --------------------------------------------------
+
+    trigger_event(name) {
+        let help_event = this.help_events[name]
+        if(help_event == null)
+            return
+        this._launch_event(help_event)
+    }
+
+    end_event(name) {
+        this._end_event(this.help_events[name])
+    }
+
+    trigger_next_queued_event() {
+        let next_event = this.next_queued_event()
+        if(next_event == null)
+            return
+        let past_event = this.past_queued_event()
+        if(past_event != null)
+            this.end_event(past_event)
+        this.next_queue_index += 1
+        this.trigger_event(next_event)
+    }
+
+    trigger_queue(event_name=null) {
+        if(event_name == null) {
+            this.trigger_next_queued_event()
+        } else {
+            if(typeof(event_name) == typeof(''))
+                event_name = [event_name]
+            for(let name of event_name) {
+                if(name == this.next_queued_event()) {
+                    this.trigger_next_queued_event()
+                    break
+                }
+            }
+        }
     }
 
 }

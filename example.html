@@ -13,29 +13,32 @@
                 margin:10px;
                 padding:20px;
             }
-            .my_class {
-                background: rgb(255, 38, 0);
+            .btn {
+                background: #555;
+                background: #003cff;
+                background: #555;
                 border-radius: 1000px;
                 width:100px;
                 height:100px;
-                color:#fff;
+                transform: scale(1);
                 text-align: center;
                 position: absolute;
-                left:50%;
-                top:50%;
+                transition: all 0.2s;
             }
-            .my_class:hover {
+            .btn:hover {
+                transform: scale(1.1);
                 cursor:pointer;
+            }
+            .btn:active {
+                transform: scale(1);
+                opacity: 0.7;
             }
         </style>
     </head>
     
     <body>
 
-        <button id='btn1' onclick="click_start()">Start the tutorial</button>
-        <br>
-        <button>Create</button><button id='btn2' onclick="click_hello()">Hello</button>
-        <div id='circle' class='my_class' onclick="click_circle()"></div>
+        <div class='container'></div>
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="helpme.js"></script>
@@ -43,32 +46,84 @@
         
             var hm = new HelpMe('helpme_example_app')
 
-            async function main() {
-                await hm.register_helpme($('#btn1'), 'start tuto', 'click the button to start the tuto', 'top right')
+            // --------------------------
+
+            function setup_help_events() {
+
+                hm.queue_help_event('welcome',{
+                    title: 'welcome !',
+                    description: 'Hello, click this button to generate the blue button !',
+                    jq:'welcome_btn',
+                })
+                hm.queue_help_event('hello',{
+                    title: 'blue button !',
+                    description: 'click the button to say hello',
+                    jq:'hello_btn',
+                })
+                hm.queue_help_event('remove',{
+                    title: 'good now..',
+                    description: 'click again to remove the hello btn',
+                    jq:'welcome_btn',
+                })
+                hm.queue_help_event('end',{
+                    title: 'very good !',
+                    description: 'now you know how to use the app',
+                    jq:'welcome_btn',
+                })
+                hm.queue_help_event('ending',null)
+            }
+
+            function setup_btns() {
+                let welcome_btn = create_btn('#ff3300','50%','50%')
+                let hello_btn = create_btn('#003cff','30px','30px')
+
+                hm.register_jq('welcome_btn',welcome_btn)
+                hm.register_jq('hello_btn',hello_btn)
+
+                $('.container').append(welcome_btn)
+
+                hm.trigger_queue('welcome')
+                
+                welcome_btn.click(function(){
+                    hm.trigger_queue(['hello','end','ending'])
+                    if(hello_btn.css('display') == '') {
+                        $('.container').append(hello_btn)
+                        hello_btn.click(function(){
+                            hm.trigger_queue('remove')
+                            alert('Hello !!')
+                        })
+                    }
+                    else {
+                        hello_btn.remove()
+                    }
+                })
+            }
+
+            // --------------------------
+
+            function main() {
+                setup_help_events()
+                setup_btns()
             }
 
             main()
 
             // --------------------------
 
+            function create_btn(color, top, left) {
+                return $('<div>').addClass('btn').css('background-color',color)
+                .css({top:top,left:left})
+            }
+
+            // --------------------------
+
             function click_start() {
-                console.log('coucou')
-                hm.register_view_helpme('start tuto')
-                hm.register_helpme($('#btn2'), 'say hello', 'click here to say hello', 'bottom left')
             }
 
             function click_hello() {
-                alert('hello')
-                hm.register_view_helpme('say hello')
-                hm.register_helpme($('#circle'), 'circle', 'click this circle to reload', 'top right')
             }
 
             async function click_circle() {
-                await hm.register_view_helpme('circle')
-                await hm.reset_all()
-                setTimeout(function(){
-                    location.reload()
-                },1000)
             }
 
         </script>
