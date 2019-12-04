@@ -243,4 +243,32 @@ class HelpMe {
         }
     }
 
+    // --------------------------------------------------
+
+    help_panel(help_data) {
+        if($('.helpme_panel').length > 0) {
+            $('.helpme_panel').remove()
+            return
+        }
+        function deep_help(name,help_obj,level) {
+            let thisJQ = $('<div>')
+            if(name != null) {
+                thisJQ.append($('<h'+level+'>').html(name).addClass('title'))
+            }
+            if(typeof(help_obj) == typeof({})) {
+                for(let subname in help_obj) {
+                    thisJQ.append(deep_help(subname,help_obj[subname],level+1)) 
+                }
+            } else {
+                thisJQ.append(help_obj)
+            }
+            return thisJQ
+        }
+        let jq = deep_help(null,help_data,0).addClass('helpme_panel')
+        $('body').append(jq)
+        $(document).click(function() {
+            jq.remove()
+        })
+    }
+
 }

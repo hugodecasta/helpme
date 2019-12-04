@@ -47,3 +47,28 @@
     0%{opacity:0.5;transform:translateX(0px);}
     100%{opacity:0;transform:translateX(-10px);}
 }
+.helpme_panel {
+    position: absolute;
+    top:0px;
+    left:calc(50% - 25%);
+    width:50%;
+    background:#fff;
+    padding:10px;
+    z-index: 99999;
+    color:#555;
+    font-size: 15px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+}
+
+.helpme_panel .title {
+    display: inline-block;
+    margin-right:10px
+}
+.helpme_panel div {
+    margin-left: 20px;
+    padding-left: 20px;
+    border-left: 2px solid #777;
+}
+.helpme_panel > div {
+    border: none;
+}
